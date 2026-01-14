@@ -1,0 +1,12 @@
+[package]
+name = "rust-architecture"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+argh = "0.1"
+glob = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+anyhow = "1.0"
