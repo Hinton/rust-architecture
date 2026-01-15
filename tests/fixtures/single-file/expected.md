@@ -1,4 +1,5 @@
 # Architecture Documentation
 
 ## Utilities
-- `crates/core`: **Core utilities for the project** (`crates/core/README.md`)
+
+- `crates/core/README.md`: Core utilities for the project

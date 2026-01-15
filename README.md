@@ -94,6 +94,22 @@ category: "Category name (e.g., Utilities, Services, Interfaces)"
 ---
 ```
 
+### Description Fallback
+
+The `description` field is optional. If omitted, the tool will automatically extract the first paragraph after the title heading from your markdown content:
+
+```markdown
+---
+category: "Utilities"
+---
+
+# Core Module
+
+This paragraph becomes the description automatically.
+
+More content here...
+```
+
 ## Development
 
 ```bash

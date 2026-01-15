@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::front_matter::{extract_front_matter, parse_front_matter};
+use crate::front_matter::{extract_first_paragraph, extract_front_matter, parse_front_matter};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Component {
@@ -21,17 +21,26 @@ pub fn parse_component(path: PathBuf, base_dir: &Path) -> Result<Component> {
     
     let front_matter = parse_front_matter(front_matter_str)
         .context(format!("Failed to parse front matter in: {}", path.display()))?;
-    
+
+    // Use front matter description, or fall back to first paragraph
+    let description = front_matter
+        .description
+        .or_else(|| extract_first_paragraph(&content))
+        .context(format!(
+            "No description found in front matter or content: {}",
+            path.display()
+        ))?;
+
     // Make path relative to base_dir
     let relative_path = if let Ok(rel) = path.strip_prefix(base_dir) {
         rel.to_path_buf()
     } else {
         path.clone()
     };
-    
+
     Ok(Component {
         path: relative_path,
-        description: front_matter.description,
+        description,
         category: front_matter.category,
     })
 }
@@ -110,8 +119,60 @@ category: "Test"
     fn test_parse_component_nonexistent_file() {
         let temp_dir = env::temp_dir();
         let test_file = temp_dir.join("nonexistent.md");
-        
+
         let result = parse_component(test_file, &temp_dir);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_component_description_from_first_paragraph() {
+        let temp_dir = env::temp_dir();
+        let test_file = temp_dir.join("test_paragraph_fallback.md");
+
+        let content = r#"---
+category: "Testing"
+---
+
+# Test Component
+
+This description comes from the first paragraph.
+
+More content here."#;
+
+        fs::write(&test_file, content).unwrap();
+
+        let result = parse_component(test_file.clone(), &temp_dir);
+        assert!(result.is_ok());
+
+        let component = result.unwrap();
+        assert_eq!(component.description, "This description comes from the first paragraph.");
+        assert_eq!(component.category, "Testing");
+
+        fs::remove_file(&test_file).ok();
+    }
+
+    #[test]
+    fn test_parse_component_prefers_front_matter_description() {
+        let temp_dir = env::temp_dir();
+        let test_file = temp_dir.join("test_prefer_front_matter.md");
+
+        let content = r#"---
+description: "From front matter"
+category: "Testing"
+---
+
+# Test Component
+
+This paragraph should be ignored."#;
+
+        fs::write(&test_file, content).unwrap();
+
+        let result = parse_component(test_file.clone(), &temp_dir);
+        assert!(result.is_ok());
+
+        let component = result.unwrap();
+        assert_eq!(component.description, "From front matter");
+
+        fs::remove_file(&test_file).ok();
     }
 }

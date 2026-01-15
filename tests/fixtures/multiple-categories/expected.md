@@ -1,10 +1,13 @@
 # Architecture Documentation
 
 ## Interfaces
-- `crates/cli`: **Command-line interface for the project** (`crates/cli/README.md`)
+
+- `crates/cli/README.md`: Command-line interface for the project
 
 ## Services
-- `crates/api`: **REST API server** (`crates/api/README.md`)
+
+- `crates/api/README.md`: REST API server
 
 ## Utilities
-- `crates/core`: **Core utilities for the project** (`crates/core/README.md`)
+
+- `crates/core/README.md`: Core utilities for the project

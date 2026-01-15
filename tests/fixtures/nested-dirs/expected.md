@@ -1,7 +1,9 @@
 # Architecture Documentation
 
 ## Backend
-- `packages/backend/services/auth`: **Authentication service** (`packages/backend/services/auth/README.md`)
+
+- `packages/backend/services/auth/README.md`: Authentication service
 
 ## Frontend
-- `packages/frontend/components`: **React components** (`packages/frontend/components/README.md`)
+
+- `packages/frontend/components/README.md`: React components
