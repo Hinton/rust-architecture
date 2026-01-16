@@ -26,7 +26,7 @@ cargo build --release
 
 ```bash
 # Basic usage
-./target/release/rust-architecture generate **/README.md ARCHITECTURE.md
+./target/release/rust-architecture generate "**/README.md" ARCHITECTURE.md
 
 # View help
 ./target/release/rust-architecture generate --help
@@ -120,13 +120,5 @@ cargo build
 cargo test
 
 # Run in development
-cargo run -- generate **/README.md ARCHITECTURE.md
+cargo run -- generate "**/README.md" ARCHITECTURE.md
 ```
-
-## License
-
-This project is licensed under the MIT License.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
