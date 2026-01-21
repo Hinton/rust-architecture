@@ -8,11 +8,10 @@ Rust Architecture automatically extracts structured metadata from your project's
 
 ## Features
 
-- 📝 **Automatic Documentation Generation** - Extracts metadata from markdown front matter
-- 🏗️ **Category-based Organization** - Groups components by category automatically
-- 🔍 **Glob Pattern Support** - Use patterns like `**/README.md` to find files
-- 🚀 **Fast & Lightweight** - Built with Rust for performance
-- 📦 **Monorepo-friendly** - Designed specifically for multi-crate/module projects
+- 📝 **Automatic Documentation Generation** - Extracts metadata from markdown with support for front matter
+- 🏗️ **Category-based Organization** - Groups components by category
+- 🔍 **Glob Pattern Support** - Use patterns like `**/README.md` to locate files
+- 📦 **Monorepo-friendly** - Designed specifically for multi-crate/module/package projects
 
 ## Installation
 
@@ -40,7 +39,7 @@ cargo build --release
 ## How It Works
 
 1. **Scan**: Finds all markdown files matching your pattern
-2. **Extract**: Reads front matter metadata (`description` and `category`)
+2. **Extract**: Reads front matter metadata (`description` and `category`), falling back to the first paragraph if `description` is missing
 3. **Organize**: Groups components by category
 4. **Generate**: Creates a structured architecture document
 
@@ -49,6 +48,7 @@ cargo build --release
 ### Input Files
 
 **`./crates/core/README.md`**
+
 ```markdown
 ---
 description: "Core utilities for the project"
@@ -56,31 +56,38 @@ category: "Utilities"
 ---
 
 # Core Module
+
 ...
 ```
 
 **`./crates/cli/README.md`**
+
 ```markdown
 ---
-description: "Command-line interface for the project"
 category: "Interfaces"
 ---
 
 # CLI Module
+
+Command-line interface for the project
+
 ...
 ```
 
 ### Generated Output
 
 **`ARCHITECTURE.md`**
+
 ```markdown
 # Architecture Documentation
 
 ## Utilities
-- `crates/core`: **Core utilities for the project** (`crates/core/README.md`)
+
+- `crates/core/README.md`: Core utilities for the project
 
 ## Interfaces
-- `crates/cli`: **Command-line interface for the project** (`crates/cli/README.md`)
+
+- `crates/cli/README.md`: Command-line interface for the project
 ```
 
 ## Front Matter Format
