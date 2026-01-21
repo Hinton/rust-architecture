@@ -1,0 +1,15 @@
+title = "Custom Project Architecture"
+description = "This document describes the system components."
+
+[[categories]]
+category = "Utilities"
+title = "Core Utilities"
+description = "Foundational modules and helpers."
+
+[[categories]]
+category = "Services"
+title = "Backend Services"
+
+[[categories]]
+category = "Interfaces"
+title = "User Interfaces"

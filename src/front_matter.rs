@@ -1,114 +1,80 @@
+//! YAML front matter extraction and parsing.
+//!
+//! This module provides utilities for extracting and parsing YAML front matter
+//! from markdown files, as well as fallback extraction of the first paragraph.
+
 use serde::Deserialize;
 
+/// Parsed YAML front matter from a markdown file.
 #[derive(Debug, Deserialize, PartialEq, Clone)]
-pub struct FrontMatter {
+pub(crate) struct FrontMatter {
+    /// Optional description of the component.
     pub description: Option<String>,
+    /// Required category for grouping in the output.
     pub category: String,
 }
 
-/// Extract YAML front matter from markdown content
-/// Returns the front matter content between the --- delimiters
-pub fn extract_front_matter(content: &str) -> Option<&str> {
-    let lines: Vec<&str> = content.lines().collect();
-    
-    if lines.is_empty() || !lines[0].trim().starts_with("---") {
-        return None;
-    }
-    
-    // Find the closing ---
-    for (i, line) in lines.iter().enumerate().skip(1) {
-        if line.trim() == "---" {
-            // Extract content between the two ---
-            return Some(&content[lines[0].len() + 1..lines[0..=i].join("\n").len() - 3]);
-        }
-    }
-    
-    None
+/// Extracts YAML front matter from markdown content.
+///
+/// Looks for content between `---` delimiters at the start of the file.
+/// Returns `None` if no valid front matter block is found.
+///
+/// # Example
+///
+/// ```text
+/// ---
+/// category: "Utils"
+/// ---
+/// # Content here
+/// ```
+pub(crate) fn extract_front_matter(content: &str) -> Option<&str> {
+    let content = content.strip_prefix("---")?;
+    let content = content.strip_prefix(['\n', '\r'])?;
+    let end = content.find("\n---").or_else(|| content.find("\r\n---"))?;
+    Some(&content[..end])
 }
 
-/// Parse YAML front matter into FrontMatter struct
-pub fn parse_front_matter(yaml: &str) -> anyhow::Result<FrontMatter> {
+/// Parses a YAML string into a [`FrontMatter`] struct.
+///
+/// # Errors
+///
+/// Returns an error if the YAML is invalid or missing required fields.
+pub(crate) fn parse_front_matter(yaml: &str) -> anyhow::Result<FrontMatter> {
     Ok(serde_yaml::from_str(yaml)?)
 }
 
-/// Extract the first paragraph after the title from markdown content.
-/// Skips the front matter (if present) and the first heading, then returns
-/// the first non-empty paragraph.
-pub fn extract_first_paragraph(content: &str) -> Option<String> {
+/// Extracts the first paragraph after the title from markdown content.
+///
+/// Skips front matter (if present) and any headings, then returns the first
+/// non-empty paragraph. Multi-line paragraphs are joined with spaces.
+///
+/// Returns `None` if no paragraph content is found.
+pub(crate) fn extract_first_paragraph(content: &str) -> Option<String> {
     let mut lines = content.lines().peekable();
 
     // Skip front matter if present
-    if lines.peek().map(|l| l.trim()) == Some("---") {
+    if lines.peek().is_some_and(|l| l.trim() == "---") {
         lines.next();
-        for line in lines.by_ref() {
-            if line.trim() == "---" {
-                break;
-            }
-        }
+        lines.find(|line| line.trim() == "---");
     }
 
-    // Skip any blank lines and the first heading
-    let mut found_heading = false;
-    for line in lines.by_ref() {
-        let trimmed = line.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-        if trimmed.starts_with('#') {
-            found_heading = true;
-            break;
-        }
-        // If we hit non-heading content before a heading, use it
-        if !trimmed.is_empty() {
-            // Collect this paragraph
-            let mut paragraph = String::from(trimmed);
-            for next_line in lines {
-                let next_trimmed = next_line.trim();
-                if next_trimmed.is_empty() {
-                    break;
-                }
-                paragraph.push(' ');
-                paragraph.push_str(next_trimmed);
-            }
-            return Some(paragraph);
-        }
-    }
+    // Skip blank lines and headings until we find paragraph content
+    let first_para_line = lines
+        .by_ref()
+        .find(|line| !line.trim().is_empty() && !line.trim().starts_with('#'))?;
 
-    if !found_heading {
-        return None;
-    }
-
-    // Now find the first paragraph after the heading
-    let mut paragraph_lines: Vec<&str> = Vec::new();
-    let mut in_paragraph = false;
-
+    // Collect contiguous non-empty lines into a paragraph
+    let mut paragraph = String::from(first_para_line.trim());
     for line in lines {
         let trimmed = line.trim();
-
-        if trimmed.is_empty() {
-            if in_paragraph {
-                break;
-            }
-            continue;
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            break;
         }
-
-        // Skip other headings
-        if trimmed.starts_with('#') {
-            if in_paragraph {
-                break;
-            }
-            continue;
-        }
-
-        in_paragraph = true;
-        paragraph_lines.push(trimmed);
+        paragraph.push(' ');
+        paragraph.push_str(trimmed);
     }
 
-    if paragraph_lines.is_empty() {
-        None
-    } else {
-        Some(paragraph_lines.join(" "))
-    }
+    Some(paragraph)
 }
 
 #[cfg(test)]
@@ -124,7 +90,7 @@ category: "Utilities"
 
 # Header
 Some content"#;
-        
+
         let front_matter = extract_front_matter(content);
         assert!(front_matter.is_some());
         let fm = front_matter.unwrap();
@@ -136,7 +102,7 @@ Some content"#;
     fn test_extract_front_matter_without_delimiters() {
         let content = r#"# Header
 Some content without front matter"#;
-        
+
         let front_matter = extract_front_matter(content);
         assert!(front_matter.is_none());
     }
@@ -153,7 +119,7 @@ Some content without front matter"#;
         let content = r#"---
 description: "Test"
 No closing delimiter"#;
-        
+
         let front_matter = extract_front_matter(content);
         assert!(front_matter.is_none());
     }
@@ -167,7 +133,10 @@ category: "Utilities""#;
         assert!(result.is_ok());
 
         let front_matter = result.unwrap();
-        assert_eq!(front_matter.description, Some("Core utilities for the project".to_string()));
+        assert_eq!(
+            front_matter.description,
+            Some("Core utilities for the project".to_string())
+        );
         assert_eq!(front_matter.category, "Utilities");
     }
 
@@ -185,7 +154,7 @@ category: "Utilities""#;
     #[test]
     fn test_parse_front_matter_missing_category() {
         let yaml = r#"description: "Core utilities""#;
-        
+
         let result = parse_front_matter(yaml);
         assert!(result.is_err());
     }
@@ -193,7 +162,7 @@ category: "Utilities""#;
     #[test]
     fn test_parse_front_matter_invalid_yaml() {
         let yaml = r#"this is not valid yaml: ["#;
-        
+
         let result = parse_front_matter(yaml);
         assert!(result.is_err());
     }
@@ -238,7 +207,10 @@ This is the description from the content.
 More content here."#;
 
         let result = extract_first_paragraph(content);
-        assert_eq!(result, Some("This is the description from the content.".to_string()));
+        assert_eq!(
+            result,
+            Some("This is the description from the content.".to_string())
+        );
     }
 
     #[test]
@@ -254,7 +226,10 @@ This is the second paragraph."#;
         let result = extract_first_paragraph(content);
         assert_eq!(
             result,
-            Some("This is a paragraph that spans multiple lines without a blank line break.".to_string())
+            Some(
+                "This is a paragraph that spans multiple lines without a blank line break."
+                    .to_string()
+            )
         );
     }
 

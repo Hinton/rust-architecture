@@ -1,7 +1,8 @@
-pub mod component;
-pub mod front_matter;
-pub mod generator;
+mod component;
+mod config;
+mod front_matter;
+mod generator;
 
-pub use component::{Component, parse_component};
-pub use front_matter::{extract_front_matter, parse_front_matter, FrontMatter};
+pub use component::{parse_component, Component};
+pub use config::{CategoryConfig, Config};
 pub use generator::generate_document;
